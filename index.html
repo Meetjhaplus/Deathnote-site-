@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DEATH NOTE — case file</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<canvas id="embers"></canvas>
+<div class="grain" aria-hidden="true"></div>
+
+<main class="stage">
+  <div class="card" id="card">
+    <span class="stamp" id="stamp">FILE 01</span>
+    <img id="pageImg" class="card-img" src="" alt="">
+    <h1 id="pageTitle"></h1>
+    <div class="rule"></div>
+    <p id="pageBody"><span id="typedText"></span><span class="cursor" id="cursor"></span></p>
+    <p class="hint" id="pageHint"></p>
+  </div>
+
+  <nav class="controls">
+    <button id="prevBtn" class="ctrl" aria-label="Previous">← BACK</button>
+    <span class="progress" id="progress">1 / 9</span>
+    <button id="nextBtn" class="ctrl" aria-label="Next">NEXT →</button>
+  </nav>
+</main>
+
+<script>
+const pages = [
+  {
+    file: "COVER",
+    title: "DEATH NOTE",
+    image: "",
+    body: "A story about a notebook, a name, and the price of playing god.",
+    hint: "press next to open the file"
+  },
+  {
+    file: "FILE 01",
+    title: "I. A Bored God",
+    image: "images/1.jpg",
+    body: "In the shinigami realm, a death god named Ryuk grows tired of eternity. For his own entertainment, he lets a black notebook fall into the human world. Any name written inside it, while picturing that person's face, means their death."
+  },
+  {
+    file: "FILE 02",
+    title: "II. The Student Who Found It",
+    image: "images/2.jpg",
+    body: "Light Yagami, a brilliant and restless high school student, finds the notebook lying in the street below his window. Convinced the world is broken beyond what ordinary justice can fix, he starts writing names — the names of criminals the courts let walk free."
+  },
+  {
+    file: "FILE 03",
+    title: "III. The Rise of Kira",
+    image: "images/3.jpg",
+    body: "Criminals across the globe begin dying of sudden heart attacks. Panic turns to fascination, and the public gives the unseen judge a name: Kira. To some, he's a monster. To others, the closest thing to justice the world has ever had."
+  },
+  {
+    file: "FILE 04",
+    title: "IV. The Detective",
+    image: "images/4.jpg",
+    body: "Governments turn to the one investigator who has never lost a case: L. Working from behind a screen and a single letter, he starts narrowing down Kira's identity, one impossible contradiction at a time."
+  },
+  {
+    file: "FILE 05",
+    title: "V. A Game of Faces",
+    image: "images/5.jpg",
+    body: "Light and L become locked in a quiet duel, two minds circling each other from opposite sides of the same table. Every conversation doubles as an interrogation. Every kindness might be a trap."
+  },
+  {
+    file: "FILE 06",
+    title: "VI. New Players, New Notebooks",
+    image: "images/6.jpg",
+    body: "More notebooks fall. More death gods follow them. What began as one student's private war widens into a tangle of hidden identities, borrowed names, and shifting loyalties, all circling the same question: who gets to decide who deserves to live?"
+  },
+  {
+    file: "FILE 07",
+    title: "VII. The Cost of Judgment",
+    image: "images/7.jpg",
+    body: "As the list of the dead grows longer, so does the question underneath it. Does deciding who's guilty make someone just? Or does a notebook like this simply hand its holder a god complex, with no one left to say no?"
+  },
+  {
+    file: "FILE 08",
+    title: "VIII. Case Closed",
+    image: "images/8.jpg",
+    body: "Every investigation ends somewhere. Every name, eventually, reaches its last page. What Death Note leaves behind isn't an answer — it's the question it hands to whoever finishes the story: if you'd held the notebook yourself, would you have written anything differently?"
+  }
+];
+
+let current = 0;
+let typingTimer = null;
+const card = document.getElementById('card');
+const stamp = document.getElementById('stamp');
+const pageImg = document.getElementById('pageImg');
+const pageTitle = document.getElementById('pageTitle');
+const typedText = document.getElementById('typedText');
+const cursor = document.getElementById('cursor');
+const pageHint = document.getElementById('pageHint');
+const progress = document.getElementById('progress');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+function typeOut(text, onDone) {
+  clearTimeout(typingTimer);
+  typedText.textContent = '';
+  cursor.style.display = 'inline-block';
+
+  if (reduceMotion) {
+    typedText.textContent = text;
+    cursor.style.display = 'none';
+    if (onDone) onDone();
+    return;
+  }
+
+  let i = 0;
+  function step() {
+    if (i < text.length) {
+      typedText.textContent += text.charAt(i);
+      i++;
+      typingTimer = setTimeout(step, 16);
+    } else {
+      cursor.style.display = 'none';
+      if (onDone) onDone();
+    }
+  }
+  step();
+}
+
+function render() {
+  const p = pages[current];
+  stamp.textContent = p.file;
+  pageTitle.textContent = p.title;
+  progress.textContent = `${current + 1} / ${pages.length}`;
+  prevBtn.style.visibility = current === 0 ? 'hidden' : 'visible';
+  nextBtn.textContent = current === pages.length - 1 ? 'RESTART' : 'NEXT →';
+
+  pageHint.style.opacity = '0';
+  pageHint.textContent = p.hint || '';
+
+  typeOut(p.body, () => {
+    if (p.hint) {
+      requestAnimationFrame(() => {
+        pageHint.style.opacity = '1';
+      });
+    }
+  });
+
+  if (p.image) {
+    pageImg.src = p.image;
+    pageImg.style.display = 'block';
+  } else {
+    pageImg.src = '';
+    pageImg.style.display = 'none';
+  }
+}
+
+function goTo(index) {
+  const wrapped = (index + pages.length) % pages.length;
+  card.classList.add('leaving');
+  setTimeout(() => {
+    current = wrapped;
+    render();
+    card.classList.remove('leaving');
+    card.classList.add('entering');
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        card.classList.remove('entering');
+      });
+    });
+  }, 320);
+}
+
+nextBtn.addEventListener('click', () => goTo(current === pages.length - 1 ? 0 : current + 1));
+prevBtn.addEventListener('click', () => goTo(current - 1));
+
+render();
+
+/* ---- ember particles ---- */
+const canvas = document.getElementById('embers');
+const ctx = canvas.getContext('2d');
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+const particles = Array.from({ length: 36 }, () => ({
+  x: Math.random() * window.innerWidth,
+  y: Math.random() * window.innerHeight,
+  r: Math.random() * 1.6 + 0.4,
+  speed: Math.random() * 0.35 + 0.08,
+  drift: Math.random() * 0.3 - 0.15,
+  alpha: Math.random() * 0.5 + 0.15
+}));
+
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180,60,60,${p.alpha})`;
+    ctx.fill();
+    p.y -= p.speed;
+    p.x += p.drift;
+    if (p.y < -10) {
+      p.y = canvas.height + 10;
+      p.x = Math.random() * canvas.width;
+    }
+  });
+  if (!reduceMotion) requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+</body>
+</html>
